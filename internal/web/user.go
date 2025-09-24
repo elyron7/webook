@@ -1,23 +1,21 @@
 package web
 
 import (
-	"log"
 	"net/http"
 
-	"github.com/dlclark/regexp2"
+	"github.com/elyron7/webook/internal/domain"
+	"github.com/elyron7/webook/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	emailRegex    = `^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`
-	passwordRegex = `^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$`
-)
-
 type UserHandler struct {
+	svc *service.UserService
 }
 
-func NewUserHandler() *UserHandler {
-	return &UserHandler{}
+func NewUserHandler(svc *service.UserService) *UserHandler {
+	return &UserHandler{
+		svc: svc,
+	}
 }
 
 func (u *UserHandler) RegisterRouter(r *gin.Engine) {
@@ -42,34 +40,18 @@ func (u *UserHandler) Signup(c *gin.Context) {
 		return
 	}
 
-	ok, err := ValidateEmail(req.Email)
-	if err != nil {
-		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "System error"})
-		return
+	user := domain.User{
+		Email:           req.Email,
+		Password:        req.Password,
+		ConfirmPassword: req.ConfirmPassword,
 	}
-	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Email format error"})
+
+	if err := u.svc.SignUp(c.Request.Context(), user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
 		return
 	}
 
-	ok, err = ValidatePassword(req.Password)
-	if err != nil {
-		log.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "System error"})
-		return
-	}
-	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Password format error"})
-		return
-	}
-
-	if req.Password != req.ConfirmPassword {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "Passwords do not match"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "User created successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Signup successfully"})
 }
 
 func (u *UserHandler) Login(c *gin.Context) {}
@@ -77,13 +59,3 @@ func (u *UserHandler) Login(c *gin.Context) {}
 func (u *UserHandler) Edit(c *gin.Context) {}
 
 func (u *UserHandler) Profile(c *gin.Context) {}
-
-func ValidatePassword(password string) (bool, error) {
-	re := regexp2.MustCompile(passwordRegex, 0)
-	return re.MatchString(password)
-}
-
-func ValidateEmail(email string) (bool, error) {
-	re := regexp2.MustCompile(emailRegex, 0)
-	return re.MatchString(email)
-}

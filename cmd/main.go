@@ -1,13 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
 
+	"github.com/elyron7/webook/internal/repository"
+	"github.com/elyron7/webook/internal/repository/dao"
+	"github.com/elyron7/webook/internal/service"
 	"github.com/elyron7/webook/internal/web"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -28,10 +34,23 @@ func main() {
 		MaxAge: 12 * time.Hour,
 	}))
 
-	userHandler := web.NewUserHandler()
+	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:3306)/webook"))
+	if err != nil {
+		panic("failed to connect database")
+	}
+	err = dao.InitTable(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	userDAO := dao.NewUserDAO(db)
+	fmt.Printf("%+v\n", userDAO)
+	userRepo := repository.NewUserRepository(userDAO)
+	userService := service.NewUserService(userRepo)
+	userHandler := web.NewUserHandler(userService)
 	userHandler.RegisterRouter(server)
 
-	err := server.Run() // listens on 0.0.0.0:8080 by default
+	err = server.Run() // listens on 0.0.0.0:8080 by default
 	if err != nil {
 		log.Fatal(err)
 	}
