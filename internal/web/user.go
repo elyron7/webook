@@ -21,7 +21,7 @@ func NewUserHandler() *UserHandler {
 }
 
 func (u *UserHandler) RegisterRouter(r *gin.Engine) {
-	ug := r.Group("/user")
+	ug := r.Group("/users")
 
 	ug.POST("/signup", u.Signup)   // Handles user signup
 	ug.POST("/login", u.Login)     // Handles user login
@@ -33,7 +33,7 @@ func (u *UserHandler) Signup(c *gin.Context) {
 	type SignUpReq struct {
 		Email           string `json:"email" binding:"required"`
 		Password        string `json:"password" binding:"required"`
-		ConfirmPassword string `json:"confirm_password" binding:"required"`
+		ConfirmPassword string `json:"confirmPassword" binding:"required"`
 	}
 
 	var req SignUpReq
