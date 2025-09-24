@@ -12,7 +12,9 @@ type UserRepository struct {
 }
 
 func NewUserRepository(userDAO *dao.UserDAO) *UserRepository {
-	return &UserRepository{}
+	return &UserRepository{
+		userDAO: userDAO,
+	}
 }
 func (repo *UserRepository) Create(ctx context.Context, user domain.User) error {
 	userDAO := dao.User{

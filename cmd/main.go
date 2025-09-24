@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -44,7 +43,6 @@ func main() {
 	}
 
 	userDAO := dao.NewUserDAO(db)
-	fmt.Printf("%+v\n", userDAO)
 	userRepo := repository.NewUserRepository(userDAO)
 	userService := service.NewUserService(userRepo)
 	userHandler := web.NewUserHandler(userService)

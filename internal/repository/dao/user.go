@@ -2,7 +2,7 @@ package dao
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"time"
 
 	"gorm.io/gorm"
@@ -21,8 +21,11 @@ func NewUserDAO(db *gorm.DB) *UserDAO {
 func (dao *UserDAO) Insert(ctx context.Context, user User) error {
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
-	fmt.Printf("%+v \n", user)
-	return dao.db.WithContext(ctx).Create(&user).Error
+	err := dao.db.WithContext(ctx).Create(&user).Error
+	if err != nil {
+		log.Println(err)
+	}
+	return nil
 }
 
 type User struct {
