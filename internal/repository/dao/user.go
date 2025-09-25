@@ -19,8 +19,8 @@ func NewUserDAO(db *gorm.DB) *UserDAO {
 }
 
 func (dao *UserDAO) Insert(ctx context.Context, user User) error {
-	user.CreatedAt = time.Now()
-	user.UpdatedAt = time.Now()
+	user.CreatedAt = time.Now().UnixMilli()
+	user.UpdatedAt = time.Now().UnixMilli()
 	err := dao.db.WithContext(ctx).Create(&user).Error
 	if err != nil {
 		log.Println(err)
@@ -29,9 +29,9 @@ func (dao *UserDAO) Insert(ctx context.Context, user User) error {
 }
 
 type User struct {
-	Id        int64  `gorm:"primary_key,AUTO_INCREMENT"`
+	Id        uint64 `gorm:"primary_key,AUTO_INCREMENT"`
 	Email     string `gorm:"unique_index"`
 	Password  string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt int64
+	UpdatedAt int64
 }

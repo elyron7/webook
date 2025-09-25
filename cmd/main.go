@@ -16,6 +16,38 @@ import (
 )
 
 func main() {
+	server := initServer()
+	db := initDB()
+	u := initUser(db)
+	u.RegisterRouter(server)
+
+	if err := server.Run(":8080"); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func initDB() *gorm.DB {
+	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:3306)/webook"))
+	if err != nil {
+		panic("failed to connect database")
+	}
+	err = dao.InitTable(db)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return db
+}
+
+func initUser(db *gorm.DB) *web.UserHandler {
+	userDAO := dao.NewUserDAO(db)
+	userRepo := repository.NewUserRepository(userDAO)
+	userService := service.NewUserService(userRepo)
+	userHandler := web.NewUserHandler(userService)
+
+	return userHandler
+}
+
+func initServer() *gin.Engine {
 	server := gin.Default()
 
 	server.Use(cors.New(cors.Config{
@@ -32,24 +64,5 @@ func main() {
 		},
 		MaxAge: 12 * time.Hour,
 	}))
-
-	db, err := gorm.Open(mysql.Open("root:root@tcp(localhost:3306)/webook"))
-	if err != nil {
-		panic("failed to connect database")
-	}
-	err = dao.InitTable(db)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	userDAO := dao.NewUserDAO(db)
-	userRepo := repository.NewUserRepository(userDAO)
-	userService := service.NewUserService(userRepo)
-	userHandler := web.NewUserHandler(userService)
-	userHandler.RegisterRouter(server)
-
-	err = server.Run() // listens on 0.0.0.0:8080 by default
-	if err != nil {
-		log.Fatal(err)
-	}
+	return server
 }
