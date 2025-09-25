@@ -9,7 +9,11 @@ import (
 )
 
 var (
-	ErrEmailAlreadyExists = repository.ErrEmailAlreadyExists
+	ErrEmailAlreadyExists    = repository.ErrEmailAlreadyExists
+	ErrSystemFailure         = domain.ErrSystemFailure
+	ErrInvalidEmail          = domain.ErrInvalidEmail
+	ErrPasswordCompareFailed = domain.ErrPasswordCompareFailed
+	ErrUserNotFound          = repository.ErrUserNotFound
 )
 
 type UserService struct {
@@ -28,6 +32,9 @@ func (svc *UserService) SignUp(ctx context.Context, user domain.User) error {
 	}
 
 	if err := user.GenerateFromPassword(); err != nil {
+		if errors.Is(err, ErrSystemFailure) {
+			return ErrSystemFailure
+		}
 		return err
 	}
 
@@ -38,5 +45,24 @@ func (svc *UserService) SignUp(ctx context.Context, user domain.User) error {
 		return err
 	}
 
+	return nil
+}
+
+func (svc *UserService) Login(ctx context.Context, user domain.User) error {
+	u, err := svc.repo.FindByEmail(ctx, user.Email)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return ErrUserNotFound
+		}
+		return nil
+	}
+
+	err = u.ComparePasswords(user.Password)
+	if err != nil {
+		if errors.Is(err, ErrPasswordCompareFailed) {
+			return ErrPasswordCompareFailed
+		}
+		return err
+	}
 	return nil
 }

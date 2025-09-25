@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	ErrEmailAlreadyExists = service.ErrEmailAlreadyExists
+	ErrBadRequest = errors.New("invalid json data")
 )
 
 type UserHandler struct {
@@ -41,7 +41,7 @@ func (u *UserHandler) Signup(c *gin.Context) {
 
 	var req SignUpReq
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "xxx"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": ErrBadRequest.Error()})
 		return
 	}
 
@@ -52,16 +52,45 @@ func (u *UserHandler) Signup(c *gin.Context) {
 	}
 
 	if err := u.svc.SignUp(c.Request.Context(), user); err != nil {
-		if errors.Is(err, ErrEmailAlreadyExists) {
+		if errors.Is(err, service.ErrEmailAlreadyExists) {
 			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		}
+
+		if errors.Is(err, service.ErrInvalidEmail) {
+			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		}
+
+		//c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Signup successfully"})
 }
 
-func (u *UserHandler) Login(c *gin.Context) {}
+func (u *UserHandler) Login(c *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}
+
+	var req LoginReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": ErrBadRequest.Error()})
+		return
+	}
+
+	user := domain.User{
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	if err := u.svc.Login(c.Request.Context(), user); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Login successfully"})
+}
 
 func (u *UserHandler) Edit(c *gin.Context) {}
 
