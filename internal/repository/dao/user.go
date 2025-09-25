@@ -2,10 +2,15 @@ package dao
 
 import (
 	"context"
-	"log"
+	"errors"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
 	"gorm.io/gorm"
+)
+
+var (
+	ErrEmailAlreadyExists = errors.New("email already exists")
 )
 
 type UserDAO struct {
@@ -21,17 +26,22 @@ func NewUserDAO(db *gorm.DB) *UserDAO {
 func (dao *UserDAO) Insert(ctx context.Context, user User) error {
 	user.CreatedAt = time.Now().UnixMilli()
 	user.UpdatedAt = time.Now().UnixMilli()
+
 	err := dao.db.WithContext(ctx).Create(&user).Error
 	if err != nil {
-		log.Println(err)
+		var mysqlErr *mysql.MySQLError
+		if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+			return ErrEmailAlreadyExists
+		}
+		return err
 	}
 	return nil
 }
 
 type User struct {
 	Id        uint64 `gorm:"primary_key,AUTO_INCREMENT"`
-	Email     string `gorm:"unique_index"`
-	Password  string
+	Email     string `gorm:"type:varchar(255);uniqueIndex:idx_email"`
+	Password  string `gorm:"type:varchar(255)"`
 	CreatedAt int64
 	UpdatedAt int64
 }

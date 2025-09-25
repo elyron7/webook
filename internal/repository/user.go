@@ -2,9 +2,14 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/elyron7/webook/internal/domain"
 	"github.com/elyron7/webook/internal/repository/dao"
+)
+
+var (
+	ErrEmailAlreadyExists = dao.ErrEmailAlreadyExists
 )
 
 type UserRepository struct {
@@ -24,6 +29,9 @@ func (repo *UserRepository) Create(ctx context.Context, user domain.User) error 
 
 	err := repo.userDAO.Insert(ctx, userDAO)
 	if err != nil {
+		if errors.Is(err, ErrEmailAlreadyExists) {
+			return ErrEmailAlreadyExists
+		}
 		return err
 	}
 

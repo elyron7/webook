@@ -1,11 +1,16 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/elyron7/webook/internal/domain"
 	"github.com/elyron7/webook/internal/service"
 	"github.com/gin-gonic/gin"
+)
+
+var (
+	ErrEmailAlreadyExists = service.ErrEmailAlreadyExists
 )
 
 type UserHandler struct {
@@ -47,7 +52,9 @@ func (u *UserHandler) Signup(c *gin.Context) {
 	}
 
 	if err := u.svc.SignUp(c.Request.Context(), user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
+		if errors.Is(err, ErrEmailAlreadyExists) {
+			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		}
 		return
 	}
 
