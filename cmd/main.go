@@ -9,7 +9,10 @@ import (
 	"github.com/elyron7/webook/internal/repository/dao"
 	"github.com/elyron7/webook/internal/service"
 	"github.com/elyron7/webook/internal/web"
+	"github.com/elyron7/webook/internal/web/middleware"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -17,6 +20,7 @@ import (
 
 func main() {
 	server := initServer()
+
 	db := initDB()
 	u := initUser(db)
 	u.RegisterRouter(server)
@@ -64,5 +68,10 @@ func initServer() *gin.Engine {
 		},
 		MaxAge: 12 * time.Hour,
 	}))
+
+	store := cookie.NewStore([]byte("secret"))
+	server.Use(sessions.Sessions("webook", store))
+	server.Use(middleware.NewLoginMiddlewareBuilder().Build())
+	
 	return server
 }

@@ -23,6 +23,7 @@ var (
 )
 
 type User struct {
+	Id              uint64
 	Email           string
 	Password        string
 	ConfirmPassword string

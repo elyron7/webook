@@ -6,11 +6,13 @@ import (
 
 	"github.com/elyron7/webook/internal/domain"
 	"github.com/elyron7/webook/internal/service"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
 var (
-	ErrBadRequest = errors.New("invalid json data")
+	ErrBadRequest        = errors.New("invalid json data")
+	ErrSessionSaveFailed = errors.New("session save failed")
 )
 
 type UserHandler struct {
@@ -54,13 +56,15 @@ func (u *UserHandler) Signup(c *gin.Context) {
 	if err := u.svc.SignUp(c.Request.Context(), user); err != nil {
 		if errors.Is(err, service.ErrEmailAlreadyExists) {
 			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			return
 		}
 
 		if errors.Is(err, service.ErrInvalidEmail) {
 			c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			return
 		}
 
-		//c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unexpected error"})
 		return
 	}
 
@@ -84,8 +88,16 @@ func (u *UserHandler) Login(c *gin.Context) {
 		Password: req.Password,
 	}
 
-	if err := u.svc.Login(c.Request.Context(), user); err != nil {
+	if err := u.svc.Login(c.Request.Context(), &user); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		return
+	}
+
+	session := sessions.Default(c)
+	session.Set("userId", user.Id)
+	err := session.Save()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": ErrSessionSaveFailed.Error()})
 		return
 	}
 

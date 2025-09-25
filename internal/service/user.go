@@ -48,7 +48,7 @@ func (svc *UserService) SignUp(ctx context.Context, user domain.User) error {
 	return nil
 }
 
-func (svc *UserService) Login(ctx context.Context, user domain.User) error {
+func (svc *UserService) Login(ctx context.Context, user *domain.User) error {
 	u, err := svc.repo.FindByEmail(ctx, user.Email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
@@ -56,6 +56,8 @@ func (svc *UserService) Login(ctx context.Context, user domain.User) error {
 		}
 		return nil
 	}
+	
+	user.Id = u.Id
 
 	err = u.ComparePasswords(user.Password)
 	if err != nil {
@@ -64,5 +66,6 @@ func (svc *UserService) Login(ctx context.Context, user domain.User) error {
 		}
 		return err
 	}
+
 	return nil
 }
