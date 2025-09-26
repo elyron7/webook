@@ -2,7 +2,6 @@ package domain
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/dlclark/regexp2"
 	"golang.org/x/crypto/bcrypt"
@@ -76,7 +75,6 @@ func (user *User) GenerateFromPassword() error {
 // ComparePasswords compares the password with the stored hash
 func (user *User) ComparePasswords(password string) error {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		fmt.Printf(err.Error())
 		return ErrPasswordCompareFailed
 	}
 	return nil

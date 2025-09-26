@@ -104,6 +104,10 @@ func (u *UserHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Login successfully"})
 }
 
-func (u *UserHandler) Edit(c *gin.Context) {}
+func (u *UserHandler) Edit(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "Edit"})
+}
 
-func (u *UserHandler) Profile(c *gin.Context) {}
+func (u *UserHandler) Profile(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"message": "Profile"})
+}
