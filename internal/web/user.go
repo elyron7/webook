@@ -32,6 +32,7 @@ func (u *UserHandler) RegisterRouter(r *gin.Engine) {
 	ug.POST("/login", u.Login)     // Handles user login
 	ug.POST("/edit", u.Edit)       // Handles user info editing
 	ug.POST("/profile", u.Profile) // Handles user profile
+	ug.POST("/logout", u.Logout)   // Handles user logout
 }
 
 func (u *UserHandler) Signup(c *gin.Context) {
@@ -95,6 +96,9 @@ func (u *UserHandler) Login(c *gin.Context) {
 
 	session := sessions.Default(c)
 	session.Set("userId", user.Id)
+	session.Options(sessions.Options{
+		MaxAge: 3 * 60, // 3 minutes
+	})
 	err := session.Save()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": ErrSessionSaveFailed.Error()})
@@ -110,4 +114,18 @@ func (u *UserHandler) Edit(c *gin.Context) {
 
 func (u *UserHandler) Profile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Profile"})
+}
+
+func (u *UserHandler) Logout(c *gin.Context) {
+	session := sessions.Default(c)
+	session.Options(sessions.Options{ // -1 means delete the session
+		MaxAge: -1,
+	})
+	err := session.Save()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": ErrSessionSaveFailed.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Logout successfully"})
 }
