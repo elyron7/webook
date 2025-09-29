@@ -8,6 +8,7 @@ import (
 	"github.com/elyron7/webook/internal/service"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var (
@@ -28,8 +29,11 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 func (u *UserHandler) RegisterRouter(r *gin.Engine) {
 	ug := r.Group("/users")
 
-	ug.POST("/signup", u.Signup)   // Handles user signup
-	ug.POST("/login", u.Login)     // Handles user login
+	ug.POST("/signup", u.Signup) // Handles user signup
+	ug.POST("/login", u.Login)   // Handles user login
+
+	ug.POST("/login_jwt", u.LoginJwt)
+
 	ug.POST("/edit", u.Edit)       // Handles user info editing
 	ug.POST("/profile", u.Profile) // Handles user profile
 	ug.POST("/logout", u.Logout)   // Handles user logout
@@ -105,6 +109,42 @@ func (u *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, gin.H{"message": "Login successfully"})
+}
+func (u *UserHandler) LoginJwt(c *gin.Context) {
+	type LoginReq struct {
+		Email    string `json:"email" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}
+
+	var req LoginReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": ErrBadRequest.Error()})
+		return
+	}
+
+	user := domain.User{
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	if err := u.svc.Login(c.Request.Context(), &user); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Use jwt to generate token
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId": user.Id,
+		"email":  user.Email,
+	}).SignedString([]byte("secret"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// c.Header("Authorization", "Bearer "+token)
+	c.Header("x-jwt-token", token)
 	c.JSON(http.StatusOK, gin.H{"message": "Login successfully"})
 }
 
