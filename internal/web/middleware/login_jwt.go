@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/elyron7/webook/internal/web"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -36,22 +37,23 @@ func (b LoginJwtMiddlewareBuilder) Build() gin.HandlerFunc {
 			return
 		}
 
-		token := strings.TrimPrefix(bearerToken, "Bearer ")
-		if token == "" {
+		clientToken := strings.TrimPrefix(bearerToken, "Bearer ")
+		if clientToken == "" {
 			context.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
 			context.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
-		claims, err := jwt.Parse(token, func(token *jwt.Token) (any, error) {
+		var userClaims web.UserClaims
+		token, err := jwt.ParseWithClaims(clientToken, &userClaims, func(token *jwt.Token) (any, error) {
 			return []byte("secret"), nil
 		})
 
-		if err != nil || !claims.Valid {
+		if err != nil || !token.Valid || userClaims.UserID == 0 {
 			context.JSON(http.StatusUnauthorized, gin.H{"message": "unauthorized"})
 			context.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-
+		context.Set("userClaims", userClaims)
 	}
 }

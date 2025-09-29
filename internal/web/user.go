@@ -14,6 +14,7 @@ import (
 var (
 	ErrBadRequest        = errors.New("invalid json data")
 	ErrSessionSaveFailed = errors.New("session save failed")
+	ErrSystemError       = errors.New("system error")
 )
 
 type UserHandler struct {
@@ -30,13 +31,16 @@ func (u *UserHandler) RegisterRouter(r *gin.Engine) {
 	ug := r.Group("/users")
 
 	ug.POST("/signup", u.Signup) // Handles user signup
-	ug.POST("/login", u.Login)   // Handles user login
 
-	ug.POST("/login_jwt", u.LoginJwt)
+	ug.POST("/login", u.Login)        // Handles user login
+	ug.POST("/login_jwt", u.LoginJwt) // Handles user login with JWT
 
-	ug.POST("/edit", u.Edit)       // Handles user info editing
-	ug.POST("/profile", u.Profile) // Handles user profile
-	ug.POST("/logout", u.Logout)   // Handles user logout
+	ug.POST("/edit", u.Edit) // Handles user info editing
+
+	ug.POST("/profile", u.Profile)        // Handles user profile
+	ug.POST("/profile_jwt", u.ProfileJwt) // Handles user profile with JWT
+
+	ug.POST("/logout", u.Logout) // Handles user logout
 }
 
 func (u *UserHandler) Signup(c *gin.Context) {
@@ -132,12 +136,12 @@ func (u *UserHandler) LoginJwt(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
 		return
 	}
+	claims := UserClaims{
+		UserID: user.Id,
+	}
 
 	// Use jwt to generate token
-	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"userId": user.Id,
-		"email":  user.Email,
-	}).SignedString([]byte("secret"))
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("secret"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
@@ -156,6 +160,21 @@ func (u *UserHandler) Profile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Profile"})
 }
 
+func (u *UserHandler) ProfileJwt(c *gin.Context) {
+	userClaims, _ := c.Get("userClaims")
+	// if !ok {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"message": ErrSystemError.Error()})
+	// 	return
+	// }
+	claims, ok := userClaims.(UserClaims)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": ErrSystemError.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "ProfileJwt", "userClaims": claims})
+}
+
 func (u *UserHandler) Logout(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Options(sessions.Options{ // -1 means delete the session
@@ -168,4 +187,9 @@ func (u *UserHandler) Logout(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logout successfully"})
+}
+
+type UserClaims struct {
+	jwt.RegisteredClaims
+	UserID uint64
 }
